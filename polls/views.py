@@ -1,3 +1,5 @@
+from django.db.models.base import Model as Model
+from django.db.models.query import QuerySet
 from django.http import HttpResponse, Http404, HttpResponseRedirect
 from .models import Question, Choice
 from django.template import loader
@@ -5,6 +7,109 @@ from django.shortcuts import get_object_or_404, render
 from django.utils import timezone
 from django.urls import reverse
 from django.db.models import F
+from django.views import generic # 제네릭 뷰를 위한
+from django.db.models import Sum
+from django.urls import reverse_lazy
+from django.views.generic.edit import CreateView
+from .models import Question
+
+# DeleteView
+class QuestionDeleteView(generic.edit.DeleteView):
+    model = Question
+    template_name = 'polls/question_confirm_delete.html'
+    success_url = reverse_lazy('polls:index')  # 삭제 후 리다이렉션될 URL, 실제 프로젝트에 맞게 수정 필요
+
+# UpdateView 연습문제
+class ChoiceUpdateView(generic.edit.UpdateView):
+    model = Choice
+    fields = ['choice_text']
+    template_name = 'polls/choice_update_form.html'  # 재사용하거나 적절한 템플릿 지정
+
+    def get_success_url(self):
+        # 선택지가 업데이트된 후, 선택지가 속한 질문의 상세 페이지로 리다이렉션
+        choice = self.object
+        return reverse('polls:detail', kwargs={'question_id': choice.question.pk})
+
+
+    # def get_success_url(self):
+    #     return reverse('polls:detail', kwargs={'question_id': self.kwargs['pk']})
+
+# UpdateView
+class QuestionUpdateView(generic.edit.UpdateView):
+    model = Question
+    fields = ['question_text']
+    template_name = 'polls/question_update_form.html'  # 재사용하거나 적절한 템플릿 지정
+    success_url = reverse_lazy('polls:index')  # 예시 URL, 실제 프로젝트에 맞게 수정 필요
+
+# CreateView
+class QuestionCreateView(generic.edit.CreateView): # CreateView 는 generic.edit 안에 있다.
+    model = Question # 생성할 모델 인스턴스의 클래스 지정
+    fields = ['question_text', 'pub_date'] # 폼에 포함될 모델 필드를 지정 , 지정된 필드를 포함하는 모델 폼을 자동으로 생성
+    template_name = 'polls/question_form.html' # 뷰에서 사용할 템플릿의 이름 지정
+    success_url = reverse_lazy('polls:index')  # 객체 생성 후 리다이렉션될 URL 지정, reverse_lazy함수를 사용하여 지정하는 것이 일반적
+
+# CreateView 연습문제
+class ChoiceCreateView(generic.edit.CreateView):
+    model = Choice
+    fields = ['choice_text']
+    template_name = 'polls/choice_form.html'
+    success_url = reverse_lazy('polls:index')
+
+    def form_valid(self, form):
+        form.instance.question = get_object_or_404(Question, pk=self.kwargs['pk'])
+        return super().form_valid(form)
+
+
+# IndexView
+class IndexView(generic.ListView): # 제네릭 뷰를 위한 상속받기 
+    # 연습문제 1. 가장 최근에 받은 질문
+    template_name = "polls/index.html" # 경로
+    context_object_name = "latest_question_list" # context 키 이름
+
+    def get_queryset(self): # 실제 값을 처리하는 메서드
+        """Return the last five published questions."""
+        return Question.objects.order_by("-pub_date")[:5]
+    
+    # 연습 문제 2. 가장 투표를 많이 받은 질문
+    # template_name = 'polls/index.html'
+    # context_object_name = 'latest_question_list' # html 바꾸지 않기 위해 동일한 컨텍스트 이름 설정, 내용은 가장 투표를 많이 받은 질문
+
+    # def get_queryset(self):
+    #     """가장 많은 투표를 받은 질문"""
+    #     output = Question.objects.annotate(total_votes=Sum('choice__votes')).order_by('-total_votes')[:1]
+    #     return output
+
+    # 연습 문제 3. 아직 투표가 없는 질문
+    # template_name = 'polls/index.html'
+    # context_object_name = 'latest_question_list'
+
+    # def get_queryset(self):
+    #     output = Question.objects.annotate(total_votes=Sum('choice__votes')).filter(total_votes=0)
+    #     return output
+    
+    # 강사님쿼리
+    # template_name = "polls/index.html" # 경로
+    # context_object_name = "latest_question_list" # context 키 이름
+
+    # def get_queryset(self): # 실제 값을 처리하는 메서드
+    #     """Return the last five published questions."""
+    #     qs = Question.objects.all()
+    #     return sorted(qs, key = lambda q : sum([c.votes for c in q.choice_set.all()]), reverse=True)
+
+# DetailView
+class DetailView(generic.DetailView):
+    model = Question
+    # template_name = "polls/detail.html" # template_name 변경하지 않고 question_detail.html 생성해서 연결, [app_name]/[model_name]_detail.html
+
+    def get_object(self):
+        question_id = self.kwargs['question_id']
+        question = get_object_or_404(Question, pk=question_id)
+        return question
+    
+# ResultsView
+class ResultsView(generic.DetailView):
+    model = Question
+    template_name = "polls/results.html"
 
 def index(request):
     latest_question_list = Question.objects.order_by("-pub_date")

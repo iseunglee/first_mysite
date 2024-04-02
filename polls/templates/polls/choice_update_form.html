@@ -1,0 +1,6 @@
+<h1>Update Choice</h1>
+<form method="post"> <!--값을 변경하기 때문에 post-->
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit">Update Choice</button>
+</form>

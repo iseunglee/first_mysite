@@ -1,0 +1,7 @@
+<h1>New Choice</h1>
+
+<form method="post">
+    {% csrf_token %} <!-- 보안을 위한 코드-->
+    {{ form.as_p }} <!--필드별 자동 입력 형식 생성-->
+    <button type="submit">Save Choice</button>
+</form>
