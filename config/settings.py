@@ -25,7 +25,7 @@ SECRET_KEY = 'django-insecure-dm^p29v127kg8$k+rw=v%fc1q06^--teo#7^$-r4$n41gg990d
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 
-ALLOWED_HOSTS = [] # 접속 가능한 사람
+ALLOWED_HOSTS = ['*'] # 접속 가능한 사람
 
 
 # Application definition
@@ -37,7 +37,8 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
-    'polls.apps.PollsConfig'
+    'polls.apps.PollsConfig',
+    "debug_toolbar",
 ]
 
 MIDDLEWARE = [
@@ -48,6 +49,14 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    "debug_toolbar.middleware.DebugToolbarMiddleware",
+]
+
+# 디버그 툴바를 위한 INTERNAL_IPS 생성
+INTERNAL_IPS = [
+    # ...
+    "127.0.0.1",
+    # ...
 ]
 
 ROOT_URLCONF = 'config.urls'
@@ -55,7 +64,7 @@ ROOT_URLCONF = 'config.urls'
 TEMPLATES = [
     {
         'BACKEND': 'django.template.backends.django.DjangoTemplates',
-        'DIRS': [],
+        'DIRS': [BASE_DIR / "templates"], # os.path.join(BASE_DIR, "templates")과 같은 내용
         'APP_DIRS': True,
         'OPTIONS': {
             'context_processors': [

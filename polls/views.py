@@ -13,6 +13,11 @@ from django.urls import reverse_lazy
 from django.views.generic.edit import CreateView
 from .models import Question
 
+
+# 뷰 개선 수업내용
+from django.utils import timezone
+
+
 # DeleteView
 class QuestionDeleteView(generic.edit.DeleteView):
     model = Question
@@ -66,10 +71,18 @@ class IndexView(generic.ListView): # 제네릭 뷰를 위한 상속받기
     template_name = "polls/index.html" # 경로
     context_object_name = "latest_question_list" # context 키 이름
 
-    def get_queryset(self): # 실제 값을 처리하는 메서드
-        """Return the last five published questions."""
-        return Question.objects.order_by("-pub_date")[:5]
+    # def get_queryset(self): # 실제 값을 처리하는 메서드
+    #     """Return the last five published questions."""
+    #     return Question.objects.order_by("-pub_date")[:5]
     
+    # 뷰 개선 수업내용
+    def get_queryset(self):
+        """
+        Return the last five published questions (not including those set to be
+        published in the future).
+        """
+        return Question.objects.filter(pub_date__lte=timezone.now()).order_by("-pub_date")[:5] # 뷰 개선을 통해 장고에서 만든 에러 확인
+
     # 연습 문제 2. 가장 투표를 많이 받은 질문
     # template_name = 'polls/index.html'
     # context_object_name = 'latest_question_list' # html 바꾸지 않기 위해 동일한 컨텍스트 이름 설정, 내용은 가장 투표를 많이 받은 질문
@@ -101,15 +114,34 @@ class DetailView(generic.DetailView):
     model = Question
     # template_name = "polls/detail.html" # template_name 변경하지 않고 question_detail.html 생성해서 연결, [app_name]/[model_name]_detail.html
 
-    def get_object(self):
-        question_id = self.kwargs['question_id']
-        question = get_object_or_404(Question, pk=question_id)
-        return question
+    # def get_object(self):
+    #     question_id = self.kwargs['question_id']
+    #     question = get_object_or_404(Question, pk=question_id)
+    #     return question
     
+    # 디테일 뷰 테스트를 위한 추가 메서드, 디테일뷰는 기본적으로 하나의 객체를 가져와야하지만, 여기선 get_queryset을 사용했다.
+    def get_queryset(self):
+        """
+        Excludes any questions that aren't published yet.
+        """
+        return Question.objects.filter(pub_date__lte=timezone.now())
+
 # ResultsView
 class ResultsView(generic.DetailView):
     model = Question
     template_name = "polls/results.html"
+
+    # 테스트 연습문제
+    def get_object(self):
+        """
+        Excludes questions that don't have at least one choice.
+        """
+        # super().get_object() 대신 get_object_or_404를 사용하여 객체를 가져옵니다.
+        # question의 choice가 없으면 페이지 나타내지 않는다
+        obj = get_object_or_404(Question, pk=self.kwargs.get('pk'))
+        if not obj.choice_set.exists():
+            raise Http404("No choices found for this question.")
+        return obj
 
 def index(request):
     latest_question_list = Question.objects.order_by("-pub_date")
